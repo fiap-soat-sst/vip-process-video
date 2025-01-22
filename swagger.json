@@ -1,0 +1,205 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+        "title": "Self-Service Totem",
+        "description": "Documentation for Self Service Totem API",
+        "version": "1.0.0",
+        "contact": {
+            "name": "API Support Team",
+            "url": "https://github.com/evilfeeh/self-service-totem/issues"
+        }
+    },
+    "servers": [
+        {
+            "url": "/api",
+            "description": "Base path"
+        }
+    ],
+    "paths": {
+        "/payment/": {
+            "get": {
+                "summary": "Get all payments",
+                "tags": ["Payments"],
+                "responses": {
+                    "200": {
+                        "description": "Payments found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "$ref": "#/components/schemas/PaymentStatusDTO"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Payments not found"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        },
+        "/payment/{id}": {
+            "get": {
+                "summary": "Get a payment by ID",
+                "tags": ["Payments"],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID of the payment to find",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Payment found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "$ref": "#/components/schemas/PaymentStatusDTO"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Payment not found"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        },
+        "/payment/checkout": {
+            "post": {
+                "summary": "Initialize payment process",
+                "tags": ["Payments"],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "$ref": "#/components/schemas/PaymentInputDTO"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Payment Confirmed",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Payment approved successfully"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Payment Cannot be done"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        },
+        "/payment/update-status/{id}": {
+            "post": {
+                "summary": "Update the payment status",
+                "tags": ["Payments"],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID of the payment to find",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "$ref": "#/components/schemas/PaymentUpdateStatusInputDTO"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Status de pagamento atualizado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Status de pagamento atualizado para:"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Payment not found"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "PaymentInputDTO": {
+                "type": "object",
+                "properties": {
+                    "orderId": {
+                        "type": "string"
+                    },
+                    "total": {
+                        "type": "number"
+                    }
+                }
+            },
+            "PaymentStatusDTO": {
+                "type": "object",
+                "properties": {
+                    "paymentId": {
+                        "type": "string"
+                    }
+                }
+            },
+            "PaymentUpdateStatusInputDTO": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    }
+}

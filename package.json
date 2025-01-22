@@ -1,0 +1,40 @@
+{
+    "name": "sst-ms-payment",
+    "version": "1.0.0",
+    "description": "Payment Microservice for Self Service Totem",
+    "main": "src/App.ts",
+    "scripts": {
+        "build": "npx tsc",
+        "start": "node ./dist/src/External/Api/Server.js",
+        "dev": "ts-node-dev --transpile-only --ignore-watch node_modules --respawn src/External/Api/Server.ts",
+        "test": "vitest --config vitest.config.mts --run",
+        "test:integration": "vitest --config vitest.config.mts --run",
+        "test:unit": "vitest --config vitest.config.mts --run",
+        "test:coverage": "vitest --config vitest.coverage.config.mts --run"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@aws-sdk/client-s3": "^3.732.0",
+        "@types/jsonwebtoken": "^9.0.7",
+        "axios": "^1.6.8",
+        "dotenv": "^16.4.5",
+        "express": "^4.21.0",
+        "swagger-ui-express": "^4.1.2"
+    },
+    "devDependencies": {
+        "@types/express": "^4.17.21",
+        "@types/jest": "^29.5.12",
+        "@types/node": "^20.12.11",
+        "@types/swagger-ui-express": "^4.1.6",
+        "@vitest/coverage-v8": "^2.1.4",
+        "jest": "^29.7.0",
+        "nodemon": "^3.1.0",
+        "ts-jest": "^29.1.2",
+        "ts-node": "^10.9.2",
+        "ts-node-dev": "^2.0.0",
+        "typescript": "^5.4.5",
+        "vitest": "^2.1.4"
+    }
+}
