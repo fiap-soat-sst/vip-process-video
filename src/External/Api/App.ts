@@ -14,8 +14,10 @@ const app: Express = express();
 app.use(express.json());
 
 // Environment variables
-const sourceBucket = process.env.SOURCE_BUCKET || '';
-const destinationBucket = process.env.DESTINATION_BUCKET || '';
+const sourceBucket =
+  process.env.AWS_S3_BUCKET_SOURCE || 'teste-upload-videos-hackaton';
+const destinationBucket =
+  process.env.AWS_S3_BUCKET_DESTINATION || 'upload-video-frames';
 
 const extractFramesRepository = new ExtractFramesRepository();
 

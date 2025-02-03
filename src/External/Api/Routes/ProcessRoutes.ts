@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { ExtractFramesUseCase } from '../../../UseCases/extractFrames.usecase';
 import { ExtractFramesRepository } from '../../ExtractFrames/ExtractFramesRepository';
-import ProcessController from '../../../Controllers/PaymentController';
+import ProcessController from '../../../Controllers/ProcessController';
 
 export default class ProcessRoutes {
   private extractFramesUseCase: ExtractFramesUseCase;

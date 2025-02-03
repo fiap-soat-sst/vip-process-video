@@ -11,14 +11,6 @@ app.listen(port, () => {
   );
 });
 
-app.get('/', (req, res) => {
-  res.redirect('/docs');
-});
-
 app.get('/ping', (req, res) => {
   res.send('pong');
-});
-
-app.get('/fiap', (req, res) => {
-  res.send('soat');
 });

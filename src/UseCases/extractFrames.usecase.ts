@@ -23,14 +23,18 @@ export class ExtractFramesUseCase {
   constructor(
     videoRepository: ExtractFramesRepository,
     sourceBucket: string,
-    destinationBucket: string,
-    tempDir: string = '/tmp'
+    destinationBucket: string
   ) {
     this.videoRepository = videoRepository;
-    this.s3Client = new S3Client();
+    this.s3Client = new S3Client({
+      region: process.env.AWS_REGION,
+    });
     this.sourceBucket = sourceBucket;
     this.destinationBucket = destinationBucket;
-    this.tempDir = tempDir;
+    const path = require('path');
+
+    const outputDir = path.join(__dirname, 'frames');
+    this.tempDir = outputDir;
   }
 
   async execute(request: QueueRequest): Promise<void> {
@@ -38,37 +42,25 @@ export class ExtractFramesUseCase {
 
     for (const video of videos) {
       try {
-        // Create temp directory for this video
         const videoTempDir = path.join(this.tempDir, video.id);
         await fs.promises.mkdir(videoTempDir, { recursive: true });
 
-        // Download video from S3
         const videoPath = path.join(videoTempDir, `${video.id}.mp4`);
         await this.downloadVideo(video.managerService.url, videoPath);
 
-        // Extract frames using ffmpeg
         await this.extractFrames(video.id, videoPath, videoTempDir);
 
-        // Upload frames to S3
         await this.uploadFrames(video.id, videoTempDir);
 
-        // Clean up
         await fs.promises.rm(videoTempDir, {
           recursive: true,
           force: true,
         });
 
-        // Update video status in repository
-        await this.videoRepository.updateProcessingStatus(
-          video.id,
-          'FRAMES_EXTRACTED'
-        );
+        //TODO: salvar no DynamoDB o status do vídeo
       } catch (error) {
+        //TODO: em caso de erro chamar o ms notification
         console.error(`Error processing video ${video.id}:`, error);
-        await this.videoRepository.updateProcessingStatus(
-          video.id,
-          'FAILED'
-        );
         throw error;
       }
     }
@@ -91,7 +83,6 @@ export class ExtractFramesUseCase {
       throw new Error('No data received from S3');
     }
 
-    // Convert the readable stream to buffer
     const chunks: Buffer[] = [];
     const stream = response.Body as Readable;
 
@@ -108,11 +99,15 @@ export class ExtractFramesUseCase {
     videoPath: string,
     outputDir: string
   ): Promise<void> {
-    // Extract one frame per second
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
     const command = `ffmpeg -i "${videoPath}" -vf fps=1 "${outputDir}/${videoId}-%03d.jpg"`;
 
     try {
       await execAsync(command);
+      console.log(`Frames extracted successfully to ${outputDir}`);
     } catch (error) {
       throw new Error(`Failed to extract frames: ${error}`);
     }
@@ -125,14 +120,12 @@ export class ExtractFramesUseCase {
     const files = await fs.promises.readdir(framesDir);
     const frameFiles = files.filter((file) => file.endsWith('.jpg'));
 
-    for (const file of frameFiles) {
+    for (let i = 0; i < frameFiles.length; i++) {
       const fileContent = await fs.promises.readFile(
-        path.join(framesDir, file)
+        path.join(framesDir, frameFiles[i])
       );
 
-      // Get the frame number from the original filename and create new name
-      const frameNumber = file.match(/\d+/)![0];
-      const newKey = `${videoId}/${videoId}-${frameNumber}.jpg`;
+      const newKey = `${videoId}/${videoId}-${i}.jpg`;
 
       const command = new PutObjectCommand({
         Bucket: this.destinationBucket,

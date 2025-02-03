@@ -8,6 +8,7 @@ export default class QueueRequest {
     managerService: {
       url: string;
     };
+    hash: string;
   }[];
 
   constructor(
@@ -18,6 +19,7 @@ export default class QueueRequest {
       size: number;
       contentType: string;
       managerService: { url: string };
+      hash: string;
     }[]
   ) {
     this._email = email;
@@ -34,6 +36,7 @@ export default class QueueRequest {
     size: number;
     contentType: string;
     managerService: { url: string };
+    hash: string;
   }[] {
     return this._videos;
   }
@@ -46,6 +49,7 @@ export default class QueueRequest {
       size: number;
       contentType: string;
       managerService: { url: string };
+      hash: string;
     }[];
   }): QueueRequest {
     const { email, videos } = json;
