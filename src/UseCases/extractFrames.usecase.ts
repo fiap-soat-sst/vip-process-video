@@ -8,29 +8,33 @@ import * as path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import QueueRequest from '../Entities/QueueObject';
-import { ExtractFramesRepository } from '../External/ExtractFrames/ExtractFramesRepository';
 import { Readable } from 'stream';
+import IUserGatewayRepository from '../Gateways/Contracts/IUserGatewayRepository';
+import IQueueGateway from '../Gateways/Contracts/IQueueGateway';
 
 const execAsync = promisify(exec);
 
 export class ExtractFramesUseCase {
   private readonly s3Client: S3Client;
-  private readonly videoRepository: ExtractFramesRepository;
   private readonly sourceBucket: string;
   private readonly destinationBucket: string;
   private readonly tempDir: string;
+  private readonly userGatewayRepository: IUserGatewayRepository
+  private readonly queueRepository: IQueueGateway
 
   constructor(
-    videoRepository: ExtractFramesRepository,
     sourceBucket: string,
-    destinationBucket: string
+    destinationBucket: string,
+    userGatewayRepository: IUserGatewayRepository,
+    queueRepository: IQueueGateway
   ) {
-    this.videoRepository = videoRepository;
     this.s3Client = new S3Client({
       region: process.env.AWS_REGION,
     });
     this.sourceBucket = sourceBucket;
     this.destinationBucket = destinationBucket;
+    this.userGatewayRepository = userGatewayRepository
+    this.queueRepository = queueRepository
     const path = require('path');
 
     const outputDir = path.join(__dirname, 'frames');
@@ -38,31 +42,36 @@ export class ExtractFramesUseCase {
   }
 
   async execute(request: QueueRequest): Promise<void> {
-    const videos = request.getVideos();
+    const video = request.getVideo();
+    const email = request.getEmail();
 
-    for (const video of videos) {
-      try {
-        const videoTempDir = path.join(this.tempDir, video.id);
-        await fs.promises.mkdir(videoTempDir, { recursive: true });
+    try {
+      const videoTempDir = path.join(this.tempDir, video.id);
+      await fs.promises.mkdir(videoTempDir, { recursive: true });
 
-        const videoPath = path.join(videoTempDir, `${video.id}.mp4`);
-        await this.downloadVideo(video.managerService.url, videoPath);
+      const videoPath = path.join(videoTempDir, `${video.id}.mp4`);
+      await this.downloadVideo(video.managerService.url, videoPath);
 
-        await this.extractFrames(video.id, videoPath, videoTempDir);
+      await this.extractFrames(video.id, videoPath, videoTempDir);
 
-        await this.uploadFrames(video.id, videoTempDir);
+      const { urls } = await this.uploadFrames(video.id, videoTempDir);
 
-        await fs.promises.rm(videoTempDir, {
-          recursive: true,
-          force: true,
-        });
+      await fs.promises.rm(videoTempDir, {
+        recursive: true,
+        force: true,
+      });
 
-        //TODO: salvar no DynamoDB o status do vídeo
-      } catch (error) {
-        //TODO: em caso de erro chamar o ms notification
-        console.error(`Error processing video ${video.id}:`, error);
-        throw error;
-      }
+      await this.userGatewayRepository.saveUrlsProcessVideo(email, video.id, urls);
+
+      const topic = process.env.AWS_SNS_TOPIC || ''
+      video.processService = {
+        images: urls.map((url) => ({ url })),
+      };
+      await this.queueRepository.publish(topic , JSON.stringify({ email, video }));
+    } catch (error) {
+      //TODO: em caso de erro chamar o ms notification
+      console.error(`Error processing video ${video.id}:`, error);
+      throw error;
     }
   }
 
@@ -116,9 +125,11 @@ export class ExtractFramesUseCase {
   private async uploadFrames(
     videoId: string,
     framesDir: string
-  ): Promise<void> {
+  ): Promise<{ urls: string[] }> {
     const files = await fs.promises.readdir(framesDir);
     const frameFiles = files.filter((file) => file.endsWith('.jpg'));
+
+    const uploadedUrls: string[] = [];
 
     for (let i = 0; i < frameFiles.length; i++) {
       const fileContent = await fs.promises.readFile(
@@ -135,6 +146,11 @@ export class ExtractFramesUseCase {
       });
 
       await this.s3Client.send(command);
+
+      const imageUrl = `https://${this.destinationBucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${newKey}`;
+      uploadedUrls.push(imageUrl);
     }
+
+    return { urls: uploadedUrls };
   }
 }

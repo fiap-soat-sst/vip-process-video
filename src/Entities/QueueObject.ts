@@ -1,6 +1,6 @@
 export default class QueueRequest {
   private _email: string;
-  private _videos: {
+  private _video: {
     id: string;
     name: string;
     size: number;
@@ -9,50 +9,52 @@ export default class QueueRequest {
       url: string;
     };
     hash: string;
-  }[];
+    processService?: { images: { url: string }[] } | undefined;
+  };
 
   constructor(
     email: string,
-    videos: {
+    video: {
       id: string;
       name: string;
       size: number;
       contentType: string;
       managerService: { url: string };
       hash: string;
-    }[]
+    }
   ) {
     this._email = email;
-    this._videos = videos;
+    this._video = video;
   }
 
   public getEmail(): string {
     return this._email;
   }
 
-  public getVideos(): {
+  public getVideo(): {
     id: string;
     name: string;
     size: number;
     contentType: string;
     managerService: { url: string };
+    processService?: { images: { url: string }[] } | undefined;
     hash: string;
-  }[] {
-    return this._videos;
+  } {
+    return this._video;
   }
 
   static fromJson(json: {
     email: string;
-    videos: {
+    video: {
       id: string;
       name: string;
       size: number;
       contentType: string;
       managerService: { url: string };
       hash: string;
-    }[];
+    };
   }): QueueRequest {
-    const { email, videos } = json;
-    return new QueueRequest(email, videos);
+    const { email, video } = json;
+    return new QueueRequest(email, video);
   }
 }

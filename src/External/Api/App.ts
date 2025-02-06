@@ -4,8 +4,12 @@ import swaggerDocument from '../../../swagger.json';
 import ProcessRoutes from './Routes/ProcessRoutes';
 
 import dotenv from 'dotenv';
-import { ExtractFramesRepository } from '../ExtractFrames/ExtractFramesRepository';
 import { ExtractFramesUseCase } from '../../UseCases/extractFrames.usecase';
+import UserGatewayRepository from '../../Gateways/User/UserGatewayRepository';
+import DynamoDBUserRepository from '../Database/Repositories/DatabaseRepository/DynamoDBUserRepository';
+import { DynamoDBAdapter } from '../Database/DynamoDbAdapter';
+import QueueGateway from '../../Gateways/Queue/queueGateway';
+import SNSQueueProvider from '../Queue/Provider/SNSQueueProvider';
 
 // Load environment variables
 dotenv.config();
@@ -19,17 +23,21 @@ const sourceBucket =
 const destinationBucket =
   process.env.AWS_S3_BUCKET_DESTINATION || 'upload-video-frames';
 
-const extractFramesRepository = new ExtractFramesRepository();
+const dataBaseAdapter = new DynamoDBAdapter();  
+const userRepository = new DynamoDBUserRepository(dataBaseAdapter);
+const userGatewayRepository = new UserGatewayRepository(userRepository);
+const snsQueueProvider = new SNSQueueProvider();
+const queueGateway = new QueueGateway(snsQueueProvider);
 
-const extractFramesUseCase = new ExtractFramesUseCase(
-  extractFramesRepository,
+const extractFramesUseCase = new ExtractFramesUseCase(  
   sourceBucket,
-  destinationBucket
+  destinationBucket,
+  userGatewayRepository,
+  queueGateway
 );
 
 const processRoutes = new ProcessRoutes(
   extractFramesUseCase,
-  extractFramesRepository
 );
 
 // Swagger documentation
