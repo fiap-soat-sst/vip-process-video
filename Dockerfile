@@ -2,6 +2,8 @@ FROM node:20.13.1
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y ffmpeg
+
 COPY . .
 
 RUN npm ci \ 
