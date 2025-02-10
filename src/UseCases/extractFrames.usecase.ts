@@ -11,6 +11,7 @@ import QueueRequest from '../Entities/QueueObject';
 import { Readable } from 'stream';
 import IUserGatewayRepository from '../Gateways/Contracts/IUserGatewayRepository';
 import IQueueGateway from '../Gateways/Contracts/IQueueGateway';
+import {INotificationGateway} from '../Gateways/Contracts/INotificationGateway';
 
 const execAsync = promisify(exec);
 
@@ -21,12 +22,14 @@ export class ExtractFramesUseCase {
   private readonly tempDir: string;
   private readonly userGatewayRepository: IUserGatewayRepository
   private readonly queueRepository: IQueueGateway
+  private readonly notificationGateway: INotificationGateway
 
   constructor(
     sourceBucket: string,
     destinationBucket: string,
     userGatewayRepository: IUserGatewayRepository,
-    queueRepository: IQueueGateway
+    queueRepository: IQueueGateway,
+    notificationGateway: INotificationGateway
   ) {
     this.s3Client = new S3Client({
       region: process.env.AWS_REGION,
@@ -35,6 +38,7 @@ export class ExtractFramesUseCase {
     this.destinationBucket = destinationBucket;
     this.userGatewayRepository = userGatewayRepository
     this.queueRepository = queueRepository
+    this.notificationGateway = notificationGateway
     const path = require('path');
 
     const outputDir = path.join(__dirname, 'frames');
@@ -68,8 +72,13 @@ export class ExtractFramesUseCase {
         images: urls.map((url) => ({ url })),
       };
       await this.queueRepository.publish(topic , JSON.stringify({ email, video }));
-    } catch (error) {
-      //TODO: em caso de erro chamar o ms notification
+    } catch (error: any) {
+      this.notificationGateway.sendEmail({
+        type: 'ERROR',
+        videoId: video.id,
+        email: email,
+        message: error.message
+      })
       console.error(`Error processing video ${video.id}:`, error);
       throw error;
     }
