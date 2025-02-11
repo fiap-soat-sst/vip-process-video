@@ -10,7 +10,6 @@ export default class ProcessController {
   }
 
   async process(req: Request, res: Response): Promise<void> {
-    console.log('🚀 ~ ProcessController ~ process ~ req:', req.body);
     try {
       const { body } = req;
       const { Message } = body;

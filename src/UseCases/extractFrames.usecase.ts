@@ -11,7 +11,7 @@ import QueueRequest from '../Entities/QueueObject';
 import { Readable } from 'stream';
 import IUserGatewayRepository from '../Gateways/Contracts/IUserGatewayRepository';
 import IQueueGateway from '../Gateways/Contracts/IQueueGateway';
-import {INotificationGateway} from '../Gateways/Contracts/INotificationGateway';
+import { INotificationGateway } from '../Gateways/Contracts/INotificationGateway';
 
 const execAsync = promisify(exec);
 
@@ -20,9 +20,9 @@ export class ExtractFramesUseCase {
   private readonly sourceBucket: string;
   private readonly destinationBucket: string;
   private readonly tempDir: string;
-  private readonly userGatewayRepository: IUserGatewayRepository
-  private readonly queueRepository: IQueueGateway
-  private readonly notificationGateway: INotificationGateway
+  private readonly userGatewayRepository: IUserGatewayRepository;
+  private readonly queueRepository: IQueueGateway;
+  private readonly notificationGateway: INotificationGateway;
 
   constructor(
     sourceBucket: string,
@@ -36,9 +36,9 @@ export class ExtractFramesUseCase {
     });
     this.sourceBucket = sourceBucket;
     this.destinationBucket = destinationBucket;
-    this.userGatewayRepository = userGatewayRepository
-    this.queueRepository = queueRepository
-    this.notificationGateway = notificationGateway
+    this.userGatewayRepository = userGatewayRepository;
+    this.queueRepository = queueRepository;
+    this.notificationGateway = notificationGateway;
     const path = require('path');
 
     const outputDir = path.join(__dirname, 'frames');
@@ -58,27 +58,37 @@ export class ExtractFramesUseCase {
 
       await this.extractFrames(video.id, videoPath, videoTempDir);
 
-      const { urls } = await this.uploadFrames(video.id, videoTempDir);
+      const { urls } = await this.uploadFrames(
+        video.id,
+        videoTempDir
+      );
 
       await fs.promises.rm(videoTempDir, {
         recursive: true,
         force: true,
       });
 
-      await this.userGatewayRepository.saveUrlsProcessVideo(email, video.id, urls);
+      await this.userGatewayRepository.saveUrlsProcessVideo(
+        email,
+        video.id,
+        urls
+      );
 
-      const topic = process.env.AWS_SNS_TOPIC || ''
+      const topic = process.env.AWS_SNS_TOPIC || '';
       video.processService = {
         images: urls.map((url) => ({ url })),
       };
-      await this.queueRepository.publish(topic , JSON.stringify({ email, video }));
+      await this.queueRepository.publish(
+        topic,
+        JSON.stringify({ email, video })
+      );
     } catch (error: any) {
       this.notificationGateway.sendEmail({
         type: 'ERROR',
         videoId: video.id,
         email: email,
-        message: error.message
-      })
+        message: error.message,
+      });
       console.error(`Error processing video ${video.id}:`, error);
       throw error;
     }
@@ -135,8 +145,8 @@ export class ExtractFramesUseCase {
     videoId: string,
     framesDir: string
   ): Promise<{ urls: string[] }> {
-    const files = await fs.promises.readdir(framesDir);
-    const frameFiles = files.filter((file) => file.endsWith('.jpg'));
+    const frameFiles = await fs.promises.readdir(framesDir);
+    // const frameFiles = files.filter((file) => file.endsWith('.jpg'));
 
     const uploadedUrls: string[] = [];
 
