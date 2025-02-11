@@ -16,6 +16,14 @@ dotenv.config();
 
 const app: Express = express();
 app.use(express.json());
+app.use(
+  express.json({
+    type: [
+      'application/json',
+      'text/plain', // AWS sends this content-type for its messages/notifications
+    ],
+  })
+);
 
 // Environment variables
 const sourceBucket =
@@ -23,22 +31,22 @@ const sourceBucket =
 const destinationBucket =
   process.env.AWS_S3_BUCKET_DESTINATION || 'upload-video-frames';
 
-const dataBaseAdapter = new DynamoDBAdapter();  
+const dataBaseAdapter = new DynamoDBAdapter();
 const userRepository = new DynamoDBUserRepository(dataBaseAdapter);
-const userGatewayRepository = new UserGatewayRepository(userRepository);
+const userGatewayRepository = new UserGatewayRepository(
+  userRepository
+);
 const snsQueueProvider = new SNSQueueProvider();
 const queueGateway = new QueueGateway(snsQueueProvider);
 
-const extractFramesUseCase = new ExtractFramesUseCase(  
+const extractFramesUseCase = new ExtractFramesUseCase(
   sourceBucket,
   destinationBucket,
   userGatewayRepository,
   queueGateway
 );
 
-const processRoutes = new ProcessRoutes(
-  extractFramesUseCase,
-);
+const processRoutes = new ProcessRoutes(extractFramesUseCase);
 
 // Swagger documentation
 app.use(

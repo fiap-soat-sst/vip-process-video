@@ -2,17 +2,15 @@ import { Request, Response } from 'express';
 import { ExtractFramesUseCase } from '../UseCases/extractFrames.usecase';
 import QueueRequest from '../Entities/QueueObject';
 
-
 export default class ProcessController {
-  private extractFramesUseCase: ExtractFramesUseCase;  
+  private extractFramesUseCase: ExtractFramesUseCase;
 
-  constructor(
-    extractFramesUseCase: ExtractFramesUseCase,    
-  ) {
-    this.extractFramesUseCase = extractFramesUseCase;    
+  constructor(extractFramesUseCase: ExtractFramesUseCase) {
+    this.extractFramesUseCase = extractFramesUseCase;
   }
 
   async process(req: Request, res: Response): Promise<void> {
+    console.log('🚀 ~ ProcessController ~ process ~ req:', req.body);
     try {
       const { body } = req;
       const { Message } = body;
@@ -42,5 +40,5 @@ export default class ProcessController {
           error instanceof Error ? error.message : 'Unknown error',
       });
     }
-  }  
+  }
 }
