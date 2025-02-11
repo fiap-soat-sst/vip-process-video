@@ -1,17 +1,17 @@
-name: "publish docker image"
+name: 'publish docker image'
 
 on:
   release:
     types: [published]
-  
+
 env:
-  IMAGE_NAME: evilfeeh/self-service-totem
-  EKS_CLUSTER_NAME: self-service-totem
+  IMAGE_NAME: evilfeeh/${{ github.event.repository.name }}
+  EKS_CLUSTER_NAME: ${{ github.event.repository.name }}
   AWS_REGION: us-east-1
   REGISTRY: hub.docker.com
 
 jobs:
-  push_to_registry:  
+  push_to_registry:
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
     permissions:
@@ -27,11 +27,11 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-         
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5
-        with:          
+        with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           images: ${{ env.IMAGE_NAME}}
           tags: |
@@ -50,7 +50,7 @@ jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
-    needs: [ push_to_registry ]
+    needs: [push_to_registry]
     steps:
       - name: Set short git commit SHA
         id: commit
@@ -65,11 +65,11 @@ jobs:
 
       - name: Update kube config
         run: aws eks update-kubeconfig --name ${{env.EKS_CLUSTER_NAME}} --region ${{env.AWS_REGION}}
-      
+
       - name: Update deployment main image
         run: |
-          kubectl set image deployment/sst-api --namespace=fiap-soat migrate=evilfeeh/self-service-totem:${{ github.event.release.tag_name }} sst-api=evilfeeh/self-service-totem:${{ github.event.release.tag_name }}
+          kubectl set image deployment/${{ github.event.repository.name }} --namespace=vip-fiap-soat migrate=evilfeeh/"${{ github.event.repository.name }}}}:${{ github.event.release.tag_name }} ${{ github.event.repository.name }}=evilfeeh/"${{ github.event.repository.name }}}}:${{ github.event.release.tag_name }}
 
       - name: restart deployment
         run: |
-          kubectl rollout restart deployment sst-api --namespace=fiap-soat
+          kubectl rollout restart deployment ${{ github.event.repository.name }} --namespace=vip-fiap-soat
